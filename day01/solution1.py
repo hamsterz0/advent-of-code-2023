@@ -23,8 +23,8 @@ def sol2():
             loc1 = line.find(number)
             loc2 = line.rfind(number)
             if loc1 != -1 and (loc1 < first_idx):
-                    first_idx = loc1
-                    first_number = number
+                first_idx = loc1
+                first_number = number
             if loc2 != -1 and (loc2 > second_idx):
                 second_idx = loc2
                 second_number = number
