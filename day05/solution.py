@@ -4,39 +4,88 @@ import concurrent.futures
 import os
 import multiprocessing
 
-filename = "input.txt"
-with open(filename, 'r') as f: lines = f.read().splitlines()
-
 def parse_input_data(lines):
     almanac = defaultdict(list)
     seeds = list()
     capture_key = None
+    capture_idx = -1
 
     for line in lines:
-
         if not line:
             capture_key = False
             continue
-
         elif "seeds:" in line:
             seeds = list(map(int, line.split(": ")[1].split(" ")))
-
         elif "map" in line:
             capture_key = line.split(" ")[0]
-        
+            capture_idx += 1
         else:
             values = list(map(int, line.split(" ")))
-            almanac[capture_key].append(values)
+            almanac[capture_idx].append(values)
     
     return (seeds, almanac)
 
-def get_dest_loc(entries, tracking):
-    for entry in entries:
-        dest, source, range = entry
-        if source <= tracking <= source+range:
-            tracking = (tracking-source)+dest
-            return tracking
-    return tracking
+filename = "input.txt"
+with open(filename, 'r') as f: lines = f.read().splitlines()
+seeds, almanac = parse_input_data(lines)
+
+# def get_dest_loc(entries, tracking):
+    # for entry in entries:
+    #     dest, source, range = entry
+    #     if source <= tracking <= source+range:
+    #         tracking = (tracking-source)+dest
+    #         return tracking
+    # return tracking
+
+
+def run_through_almanac(init_seed, rng):
+    location = sys.maxsize
+
+    for seed in range(init_seed, init_seed+rng):
+        tracking = seed
+        num_steps = len(almanac.keys())
+
+        # print(seed)
+
+        for step in range(num_steps):
+            for entry in almanac[step]:
+                dest, source, rng = entry
+                if source <= tracking < source+rng:
+                    # print(step, entry, tracking)
+                    tracking = (tracking-source)+dest
+                    break
+
+        location = min(location, tracking)           
+
+    return location
+
+
+def seed_gen(init_seed, seed_range):
+    for seed in range(init_seed, init_seed+seed_range):
+        yield seed
+
+
+if __name__ == "__main__":
+    location = sys.maxsize
+    
+    tasks = [(seed, rng) for seed, rng in zip(seeds[::2], seeds[1::2])]
+    logger = 1
+
+    for task in tasks:
+        location = min(location, run_through_almanac(*task))
+    
+    print(location)
+
+    # with concurrent.futures.ProcessPoolExecutor() as executor:
+    #     results = executor.map(run_through_almanac, seeds)
+
+    #     for result in results:
+    #         location = min(location, result)
+
+
+'''
+
+104070863 - too high. That means my division of work is now accurate. 
 
 
 def run_through_almanac(arguments):
@@ -81,48 +130,12 @@ def run_through_almanac(arguments):
         tracking = get_dest_loc(entries, tracking)
 
         # locations.append(tracking)
-        location = min(location, tracking)
+        if not location:
+            location = tracking
+        else:
+            location = min(location, tracking)
     
     return location
-
-def seed_gen(init_seed, seed_range):
-    for seed in range(init_seed, init_seed+seed_range):
-        yield seed
-
-
-# def divide_work(init_seed, rng, almanac, num_processes=61):
-#     workload_per_proc = rng//num_processes + 1
-
-#     return [(iseed, workload_per_proc, almanac) for iseed in range(init_seed, init_seed+rng, workload_per_proc)]
-
-
-if __name__ == "__main__":
-    seeds, almanac = parse_input_data(lines)
-    location = sys.maxsize
-    
-    seeds = [(seed, range, almanac) for seed, range in zip(seeds[::2], seeds[1::2])]
-    # print(new_seeds)
-    logger = 1
-
-    # locations = []
-
-    # for init_seed, rng in new_seeds:
-    #     print(f"[+] Started looking at the range interval {logger}")
-    #     logger += 1
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        # create arguments
-        # arguments = divide_range_into_subsets(init_seed, rng, almanac)
-        results = executor.map(run_through_almanac, seeds)
-
-        for result in results:
-            location = min(location, result)
-    
-    print(location)
-
-
-'''
-
-104070863 - too high. That means my division of work is now accurate. 
 
 
 Tried and failed. 
